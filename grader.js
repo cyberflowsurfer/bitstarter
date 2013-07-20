@@ -36,18 +36,16 @@ var assertFileExists = function(infile) {
         process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
     }
     return instr;
-};
-
-var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
 };
+
 
 var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));
 };
 
-var checkHtmlFile = function(htmlfile, checksfile) {
-    $ = cheerioHtmlFile(htmlfile);
+var checkHtmlFile = function(buf, checksfile) {
+    $ = cheerio.load(buf);
     var checks = loadChecks(checksfile).sort();
     var out = {};
     for(var ii in checks) {
@@ -70,13 +68,16 @@ if(require.main == module) {
         .option('-u --url <url>', 'URI to document', '')
         .parse(process.argv);
 
+    var buf;
     if (program.url) {
-      console.log("URL");
-    }
-    var checkJson = checkHtmlFile(program.file, program.checks);
+       restler.get(program.url).on('complete', function(data) {
+        console.log(JSON.stringify(checkHtmlFile(buf, program.checks), null,4));
+      }); 
+     } else { 
+      buf = fs.readFileSync(program.file);
+      console.log(JSON.stringify(checkHtmlFile(buf, program.checks), null, 4)); 
+   }
 
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
